@@ -1,0 +1,17 @@
+CREATE SCHEMA IF NOT EXISTS user_service;
+CREATE SCHEMA IF NOT EXISTS club_service;
+CREATE SCHEMA IF NOT EXISTS match_service;
+CREATE SCHEMA IF NOT EXISTS seat_service;
+CREATE SCHEMA IF NOT EXISTS reservation_service;
+CREATE SCHEMA IF NOT EXISTS payment_service;
+CREATE SCHEMA IF NOT EXISTS queue_service;
+CREATE SCHEMA IF NOT EXISTS common;
+
+GRANT ALL PRIVILEGES ON SCHEMA user_service TO ticketing;
+GRANT ALL PRIVILEGES ON SCHEMA club_service TO ticketing;
+GRANT ALL PRIVILEGES ON SCHEMA match_service TO ticketing;
+GRANT ALL PRIVILEGES ON SCHEMA seat_service TO ticketing;
+GRANT ALL PRIVILEGES ON SCHEMA reservation_service TO ticketing;
+GRANT ALL PRIVILEGES ON SCHEMA payment_service TO ticketing;
+GRANT ALL PRIVILEGES ON SCHEMA queue_service TO ticketing;
+GRANT ALL PRIVILEGES ON SCHEMA common TO ticketing;
