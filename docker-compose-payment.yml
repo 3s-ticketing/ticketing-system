@@ -1,0 +1,63 @@
+services:
+  config-server:
+    build:
+      context: .
+      dockerfile: config-server/Dockerfile
+    container_name: ticketing-config-server
+    restart: unless-stopped
+    ports:
+      - "${CONFIG_SERVER_PORT:-10002}:8888"
+    environment:
+      TZ: Asia/Seoul
+    networks:
+      - ticketing-network
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8888/actuator/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  eureka-server:
+    build:
+      context: ./eureka-server
+      dockerfile: Dockerfile
+    container_name: ticketing-eureka
+    restart: unless-stopped
+    ports:
+      - "${EUREKA_PORT:-10001}:17001"
+    environment:
+      TZ: Asia/Seoul
+    networks:
+      - ticketing-network
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:17001/eureka/apps || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  payment:
+    build:
+      context: ./payment-service
+      dockerfile: Dockerfile
+      args:
+        GPR_USER: ${GPR_USER}
+        GPR_TOKEN: ${GPR_TOKEN}
+    container_name: ticketing-payment
+    restart: unless-stopped
+    ports:
+      - "${PAYMENT_PORT:-20006}:8080"
+    env_file:
+      - .env
+    environment:
+      EUREKA_DEFAULT_ZONE: http://eureka-server:17001/eureka/
+    depends_on:
+      config-server:
+        condition: service_healthy
+      eureka-server:
+        condition: service_healthy
+    networks:
+      - ticketing-network
+
+networks:
+  ticketing-network:
+    external: true

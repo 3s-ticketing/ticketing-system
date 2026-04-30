@@ -106,6 +106,7 @@ services:
 
 networks:
   ticketing-network:
+    name: ticketing-network #네트워크 이름이 기존에 ticketing-system_ticketing-network로 생성되어, ticketing-network로 지정
     driver: bridge
 
 volumes:
