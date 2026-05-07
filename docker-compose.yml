@@ -1,14 +1,15 @@
+version: "3.9"
+
 services:
   postgres:
     image: postgres:16
     container_name: ticketing-postgres
     restart: unless-stopped
     ports:
-      - "${POSTGRES_PORT:-15432}:5432"
+      - "${POSTGRES_HOST_PORT:-15432}:5432"
+    env_file:
+      - .env
     environment:
-      POSTGRES_DB: ${POSTGRES_DB:-ticketing}
-      POSTGRES_USER: ${POSTGRES_USER:-ticketing}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-change-me-local}
       TZ: Asia/Seoul
     volumes:
       - postgres-data:/var/lib/postgresql/data
@@ -26,7 +27,7 @@ services:
     container_name: ticketing-redis
     restart: unless-stopped
     ports:
-      - "${REDIS_PORT:-16379}:6379"
+      - "${REDIS_HOST_PORT:-16379}:6379"
     command: redis-server --appendonly yes
     volumes:
       - redis-data:/data
@@ -43,21 +44,17 @@ services:
     container_name: ticketing-kafka
     restart: unless-stopped
     ports:
-      - "${KAFKA_PORT:-19092}:19092"
+      - "${KAFKA_HOST_PORT:-19092}:19092"
     environment:
       TZ: Asia/Seoul
-
       KAFKA_NODE_ID: 1
       KAFKA_PROCESS_ROLES: broker,controller
       KAFKA_CONTROLLER_QUORUM_VOTERS: 1@kafka:9093
-
       KAFKA_LISTENERS: PLAINTEXT://:9092,CONTROLLER://:9093,EXTERNAL://:19092
-      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092,EXTERNAL://localhost:${KAFKA_PORT:-19092}
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092,EXTERNAL://localhost:${KAFKA_HOST_PORT:-19092}
       KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,CONTROLLER:PLAINTEXT,EXTERNAL:PLAINTEXT
-
       KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
       KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
-
       KAFKA_AUTO_CREATE_TOPICS_ENABLE: "true"
       KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
       KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
@@ -78,18 +75,15 @@ services:
     container_name: ticketing-keycloak
     restart: unless-stopped
     ports:
-      - "${KEYCLOAK_PORT:-18080}:8080"
+      - "${KEYCLOAK_HOST_PORT:-18080}:8080"
+    env_file:
+      - .env
     environment:
       TZ: Asia/Seoul
-
-      KEYCLOAK_ADMIN: ${KEYCLOAK_ADMIN:-admin}
-      KEYCLOAK_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD:-change-me-local}
-
       KC_DB: postgres
       KC_DB_URL: jdbc:postgresql://postgres:5432/${KEYCLOAK_DB:-keycloak}
       KC_DB_USERNAME: ${POSTGRES_USER:-ticketing}
       KC_DB_PASSWORD: ${POSTGRES_PASSWORD:-change-me-local}
-
       KC_HEALTH_ENABLED: "true"
       KC_METRICS_ENABLED: "true"
     command: start-dev
@@ -98,11 +92,252 @@ services:
         condition: service_healthy
     networks:
       - ticketing-network
-    healthcheck:
-      test: ["CMD-SHELL", "exec 3<>/dev/tcp/localhost/8080 || exit 1"]
-      interval: 10s
-      timeout: 5s
-      retries: 20
+
+  zipkin:
+    image: openzipkin/zipkin:latest
+    container_name: ticketing-zipkin
+    restart: unless-stopped
+    ports:
+      - "${ZIPKIN_HOST_PORT:-9411}:9411"
+    networks:
+      - ticketing-network
+
+  config-server:
+    build:
+      context: .
+      dockerfile: config-server/Dockerfile
+    container_name: ticketing-config-server
+    restart: unless-stopped
+    ports:
+      - "${CONFIG_SERVER_HOST_PORT:-10002}:10002"
+    env_file:
+      - .env
+    environment:
+      TZ: Asia/Seoul
+      SPRING_CONFIG_IMPORT: ""
+    networks:
+      - ticketing-network
+
+  eureka-server:
+    build:
+      context: ./eureka-server
+      dockerfile: Dockerfile
+    container_name: ticketing-eureka
+    restart: unless-stopped
+    ports:
+      - "${EUREKA_HOST_PORT:-10001}:10001"
+    env_file:
+      - .env
+    environment:
+      TZ: Asia/Seoul
+    networks:
+      - ticketing-network
+
+  user-service:
+    build:
+      context: ./user-service
+      dockerfile: Dockerfile
+      args:
+        GPR_USER: ${GPR_USER}
+        GPR_TOKEN: ${GPR_TOKEN}
+    container_name: ticketing-user-service
+    restart: unless-stopped
+    ports:
+      - "${USER_SERVICE_PORT:-20001}:20001"
+    env_file:
+      - .env
+    environment:
+      TZ: Asia/Seoul
+      DB_SCHEMA: user_service
+      SPRING_DATASOURCE_URL: "jdbc:postgresql://postgres:5432/${POSTGRES_DB:-ticketing}?currentSchema=user_service"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+    networks:
+      - ticketing-network
+
+  match-service:
+    build:
+      context: ./match-service
+      dockerfile: Dockerfile
+      args:
+        GPR_USER: ${GPR_USER}
+        GPR_TOKEN: ${GPR_TOKEN}
+    container_name: ticketing-match-service
+    restart: unless-stopped
+    ports:
+      - "${MATCH_SERVICE_PORT:-20002}:20002"
+    env_file:
+      - .env
+    environment:
+      TZ: Asia/Seoul
+      DB_SCHEMA: match_service
+      SPRING_DATASOURCE_URL: "jdbc:postgresql://postgres:5432/${POSTGRES_DB:-ticketing}?currentSchema=match_service"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+    networks:
+      - ticketing-network
+
+  club-service:
+    build:
+      context: ./club-service
+      dockerfile: Dockerfile
+      args:
+        GPR_USER: ${GPR_USER}
+        GPR_TOKEN: ${GPR_TOKEN}
+    container_name: ticketing-club-service
+    restart: unless-stopped
+    ports:
+      - "${CLUB_PORT:-20003}:20003"
+    env_file:
+      - .env
+    environment:
+      TZ: Asia/Seoul
+      DB_SCHEMA: club_service
+      SPRING_DATASOURCE_URL: "jdbc:postgresql://postgres:5432/${POSTGRES_DB:-ticketing}?currentSchema=club_service"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+    networks:
+      - ticketing-network
+
+  seat-service:
+    build:
+      context: ./seat-service
+      dockerfile: Dockerfile
+      args:
+        GPR_USER: ${GPR_USER}
+        GPR_TOKEN: ${GPR_TOKEN}
+    container_name: ticketing-seat-service
+    restart: unless-stopped
+    ports:
+      - "${SEAT_SERVICE_PORT:-20004}:20004"
+    env_file:
+      - .env
+    environment:
+      TZ: Asia/Seoul
+      DB_SCHEMA: seat_service
+      SPRING_DATASOURCE_URL: "jdbc:postgresql://postgres:5432/${POSTGRES_DB:-ticketing}?currentSchema=seat_service"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+    networks:
+      - ticketing-network
+
+  reservation-service:
+    build:
+      context: ./reservation-service
+      dockerfile: Dockerfile
+      args:
+        GPR_USER: ${GPR_USER}
+        GPR_TOKEN: ${GPR_TOKEN}
+    container_name: ticketing-reservation-service
+    restart: unless-stopped
+    ports:
+      - "${RESERVATION_SERVICE_PORT:-20005}:20005"
+    env_file:
+      - .env
+    environment:
+      TZ: Asia/Seoul
+      DB_SCHEMA: reservation_service
+      SPRING_DATASOURCE_URL: "jdbc:postgresql://postgres:5432/${POSTGRES_DB:-ticketing}?currentSchema=reservation_service"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+    networks:
+      - ticketing-network
+
+  payment-service:
+    build:
+      context: ./payment-service
+      dockerfile: Dockerfile
+      args:
+        GPR_USER: ${GPR_USER}
+        GPR_TOKEN: ${GPR_TOKEN}
+    container_name: ticketing-payment-service
+    restart: unless-stopped
+    ports:
+      - "${PAYMENT_SERVICE_PORT:-20006}:20006"
+    env_file:
+      - .env
+    environment:
+      TZ: Asia/Seoul
+      DB_SCHEMA: payment_service
+      SPRING_DATASOURCE_URL: "jdbc:postgresql://postgres:5432/${POSTGRES_DB:-ticketing}?currentSchema=payment_service"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+    networks:
+      - ticketing-network
+
+  queue-service:
+    build:
+      context: ./queue-service
+      dockerfile: Dockerfile
+      args:
+        GPR_USER: ${GPR_USER}
+        GPR_TOKEN: ${GPR_TOKEN}
+    container_name: ticketing-queue-service
+    restart: unless-stopped
+    ports:
+      - "${QUEUE_SERVICE_PORT:-20007}:20007"
+    env_file:
+      - .env
+    environment:
+      TZ: Asia/Seoul
+      SPRING_PROFILES_ACTIVE: docker
+      DB_SCHEMA: queue_service
+      SPRING_DATASOURCE_URL: "jdbc:postgresql://postgres:5432/${POSTGRES_DB:-ticketing}?currentSchema=queue_service"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+    networks:
+      - ticketing-network
+
+  gateway-service:
+    build:
+      context: ./gateway-service
+      dockerfile: Dockerfile
+      args:
+        GPR_USER: ${GPR_USER}
+        GPR_TOKEN: ${GPR_TOKEN}
+    container_name: ticketing-gateway-service
+    restart: unless-stopped
+    ports:
+      - "${GATEWAY_PORT:-10000}:10000"
+    env_file:
+      - .env
+    environment:
+      TZ: Asia/Seoul
+    networks:
+      - ticketing-network
 
 networks:
   ticketing-network:
