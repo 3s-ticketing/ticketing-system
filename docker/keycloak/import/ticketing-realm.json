@@ -1,0 +1,5 @@
+{
+  "realm": "ticketing",
+  "enabled": true,
+  "accessTokenLifespan": 1800
+}
