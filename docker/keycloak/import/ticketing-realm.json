@@ -1,5 +1,53 @@
 {
   "realm": "ticketing",
   "enabled": true,
-  "accessTokenLifespan": 1800
+  "accessTokenLifespan": 1800,
+  "ssoSessionIdleTimeout": 18000,
+  "ssoSessionMaxLifespan": 36000,
+
+  "roles": {
+    "realm": [
+      {
+        "name": "GENERAL",
+        "description": "General user role"
+      },
+      {
+        "name": "ADMIN",
+        "description": "Administrator role"
+      }
+    ]
+  },
+
+  "clients": [
+    {
+      "clientId": "ticketing-client",
+      "name": "ticketing-client",
+      "enabled": true,
+      "protocol": "openid-connect",
+
+      "publicClient": true,
+      "bearerOnly": false,
+
+      "standardFlowEnabled": true,
+      "directAccessGrantsEnabled": true,
+      "implicitFlowEnabled": false,
+      "serviceAccountsEnabled": false,
+
+      "redirectUris": [
+        "http://localhost:10000/*",
+        "http://localhost:3000/*",
+        "http://localhost:5173/*"
+      ],
+      "webOrigins": [
+        "http://localhost:10000",
+        "http://localhost:3000",
+        "http://localhost:5173",
+        "+"
+      ],
+
+      "attributes": {
+        "pkce.code.challenge.method": "S256"
+      }
+    }
+  ]
 }
