@@ -1,0 +1,384 @@
+apiVersion: 1
+
+groups:
+  # ────────────────────────────────────────────────
+  # Critical 알람 그룹 (evaluate every 30s)
+  # ────────────────────────────────────────────────
+  - orgId: 1
+    name: critical-alert-group
+    folder: error-alert
+    interval: 30s
+    rules:
+
+      # 1. Service Down
+      - uid: alert-service-down
+        title: Service Down
+        condition: C
+        data:
+          - refId: A
+            datasourceUid: prometheus
+            relativeTimeRange:
+              from: 300
+              to: 0
+            model:
+              expr: up{job!~"prometheus|node-exporter|grafana"} == 0
+              instant: true
+              intervalMs: 1000
+              maxDataPoints: 43200
+              refId: A
+          - refId: C
+            datasourceUid: "-100"
+            relativeTimeRange:
+              from: 0
+              to: 0
+            model:
+              conditions:
+                - evaluator:
+                    params:
+                      - 1
+                    type: lt
+                  operator:
+                    type: and
+                  query:
+                    params:
+                      - A
+                  reducer:
+                    type: last
+                  type: query
+              datasource:
+                type: __expr__
+                uid: "-100"
+              expression: A
+              refId: C
+              type: threshold
+        noDataState: Alerting
+        execErrState: Alerting
+        for: 1m
+        keepFiringFor: 1m
+        labels:
+          severity: critical
+          team: platform
+        annotations:
+          summary: "서비스 다운 감지"
+          description: "{{ $labels.job }} / {{ $labels.instance }} 응답 없음"
+
+      # 6. DB Connection Pool
+      - uid: alert-db-pool
+        title: DB Connection Pool
+        condition: C
+        data:
+          - refId: A
+            datasourceUid: prometheus
+            relativeTimeRange:
+              from: 300
+              to: 0
+            model:
+              expr: "hikaricp_connections_active / hikaricp_connections_max * 100"
+              instant: true
+              intervalMs: 1000
+              maxDataPoints: 43200
+              refId: A
+          - refId: C
+            datasourceUid: "-100"
+            relativeTimeRange:
+              from: 0
+              to: 0
+            model:
+              conditions:
+                - evaluator:
+                    params:
+                      - 90
+                    type: gt
+                  operator:
+                    type: and
+                  query:
+                    params:
+                      - A
+                  reducer:
+                    type: last
+                  type: query
+              datasource:
+                type: __expr__
+                uid: "-100"
+              expression: A
+              refId: C
+              type: threshold
+        noDataState: NoData
+        execErrState: Error
+        for: 3m
+        keepFiringFor: 1m
+        labels:
+          severity: critical
+          team: backend
+        annotations:
+          summary: "DB Connection Pool 고갈 위험"
+          description: "{{ $labels.pool }} 사용률 {{ $value | printf \"%.1f\" }}%"
+
+  # ────────────────────────────────────────────────
+  # Warning 알람 그룹 (evaluate every 1m)
+  # ────────────────────────────────────────────────
+  - orgId: 1
+    name: warning-alert-group
+    folder: error-alert
+    interval: 1m
+    rules:
+
+      # 2. Error Rate
+      - uid: alert-error-rate
+        title: Error Rate
+        condition: C
+        data:
+          - refId: A
+            datasourceUid: prometheus
+            relativeTimeRange:
+              from: 600
+              to: 0
+            model:
+              expr: "sum(rate(http_server_requests_seconds_count{status=~\"5..\"}[5m])) by (service) / sum(rate(http_server_requests_seconds_count[5m])) by (service) * 100"
+              instant: true
+              intervalMs: 1000
+              maxDataPoints: 43200
+              refId: A
+          - refId: C
+            datasourceUid: "-100"
+            relativeTimeRange:
+              from: 0
+              to: 0
+            model:
+              conditions:
+                - evaluator:
+                    params:
+                      - 5
+                    type: gt
+                  operator:
+                    type: and
+                  query:
+                    params:
+                      - A
+                  reducer:
+                    type: last
+                  type: query
+              datasource:
+                type: __expr__
+                uid: "-100"
+              expression: A
+              refId: C
+              type: threshold
+        noDataState: NoData
+        execErrState: Error
+        for: 5m
+        keepFiringFor: 1m
+        labels:
+          severity: warning
+          team: backend
+        annotations:
+          summary: "에러율 임계값 초과"
+          description: "{{ $labels.service }} 에러율 {{ $value | printf \"%.2f\" }}%"
+
+      # 3. Kafka Consumer Lag
+      - uid: alert-kafka-lag
+        title: Kafka Consumer Lag
+        condition: C
+        data:
+          - refId: A
+            datasourceUid: prometheus
+            relativeTimeRange:
+              from: 600
+              to: 0
+            model:
+              expr: "sum(kafka_consumer_group_lag{job!~\"prometheus|node-exporter|grafana\"}) by (consumer_group, topic)"
+              instant: true
+              intervalMs: 1000
+              maxDataPoints: 43200
+              refId: A
+          - refId: C
+            datasourceUid: "-100"
+            relativeTimeRange:
+              from: 0
+              to: 0
+            model:
+              conditions:
+                - evaluator:
+                    params:
+                      - 10000
+                    type: gt
+                  operator:
+                    type: and
+                  query:
+                    params:
+                      - A
+                  reducer:
+                    type: last
+                  type: query
+              datasource:
+                type: __expr__
+                uid: "-100"
+              expression: A
+              refId: C
+              type: threshold
+        noDataState: NoData
+        execErrState: Error
+        for: 5m
+        keepFiringFor: 1m
+        labels:
+          severity: warning
+          team: platform
+        annotations:
+          summary: "Kafka Consumer Lag 급증"
+          description: "{{ $labels.consumer_group }} / {{ $labels.topic }} Lag: {{ $value }}"
+
+      # 4. P95 Latency
+      - uid: alert-p95-latency
+        title: P95 Latency
+        condition: C
+        data:
+          - refId: A
+            datasourceUid: prometheus
+            relativeTimeRange:
+              from: 600
+              to: 0
+            model:
+              expr: "histogram_quantile(0.95, sum(rate(http_server_requests_seconds_bucket[5m])) by (le, service))"
+              instant: true
+              intervalMs: 1000
+              maxDataPoints: 43200
+              refId: A
+          - refId: C
+            datasourceUid: "-100"
+            relativeTimeRange:
+              from: 0
+              to: 0
+            model:
+              conditions:
+                - evaluator:
+                    params:
+                      - 2
+                    type: gt
+                  operator:
+                    type: and
+                  query:
+                    params:
+                      - A
+                  reducer:
+                    type: last
+                  type: query
+              datasource:
+                type: __expr__
+                uid: "-100"
+              expression: A
+              refId: C
+              type: threshold
+        noDataState: NoData
+        execErrState: Error
+        for: 5m
+        keepFiringFor: 1m
+        labels:
+          severity: warning
+          team: backend
+        annotations:
+          summary: "P95 응답시간 초과"
+          description: "{{ $labels.service }} P95 {{ $value | printf \"%.2f\" }}s"
+
+      # 5. Redis Eviction
+      - uid: alert-redis-eviction
+        title: Redis Eviction
+        condition: C
+        data:
+          - refId: A
+            datasourceUid: prometheus
+            relativeTimeRange:
+              from: 600
+              to: 0
+            model:
+              expr: "increase(redis_evicted_keys_total[5m])"
+              instant: true
+              intervalMs: 1000
+              maxDataPoints: 43200
+              refId: A
+          - refId: C
+            datasourceUid: "-100"
+            relativeTimeRange:
+              from: 0
+              to: 0
+            model:
+              conditions:
+                - evaluator:
+                    params:
+                      - 0
+                    type: gt
+                  operator:
+                    type: and
+                  query:
+                    params:
+                      - A
+                  reducer:
+                    type: last
+                  type: query
+              datasource:
+                type: __expr__
+                uid: "-100"
+              expression: A
+              refId: C
+              type: threshold
+        noDataState: NoData
+        execErrState: Error
+        for: 2m
+        keepFiringFor: 1m
+        labels:
+          severity: warning
+          team: platform
+        annotations:
+          summary: "Redis Eviction 발생"
+          description: "5분간 eviction {{ $value }}건 — TTL 및 maxmemory 점검 필요"
+
+      # 7. Redis Memory Usage
+      - uid: alert-redis-memory
+        title: Redis Memory Usage
+        condition: C
+        data:
+          - refId: A
+            datasourceUid: prometheus
+            relativeTimeRange:
+              from: 600
+              to: 0
+            model:
+              expr: "redis_memory_used_bytes / redis_memory_max_bytes * 100"
+              instant: true
+              intervalMs: 1000
+              maxDataPoints: 43200
+              refId: A
+          - refId: C
+            datasourceUid: "-100"
+            relativeTimeRange:
+              from: 0
+              to: 0
+            model:
+              conditions:
+                - evaluator:
+                    params:
+                      - 80
+                    type: gt
+                  operator:
+                    type: and
+                  query:
+                    params:
+                      - A
+                  reducer:
+                    type: last
+                  type: query
+              datasource:
+                type: __expr__
+                uid: "-100"
+              expression: A
+              refId: C
+              type: threshold
+        noDataState: NoData
+        execErrState: Error
+        for: 5m
+        keepFiringFor: 1m
+        labels:
+          severity: warning
+          team: platform
+        annotations:
+          summary: "Redis 메모리 사용률 경고"
+          description: "사용률 {{ $value | printf \"%.1f\" }}% — maxmemory 증설 또는 TTL 점검 필요"

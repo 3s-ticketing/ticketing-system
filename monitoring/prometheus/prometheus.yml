@@ -1,0 +1,63 @@
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+
+scrape_configs:
+  - job_name: 'prometheus'
+    static_configs:
+      - targets: ['localhost:9090']
+
+  - job_name: 'user-service'
+    metrics_path: '/actuator/prometheus'
+    static_configs:
+      - targets: ['user-service:20001']
+
+  - job_name: 'match-service'
+    metrics_path: '/actuator/prometheus'
+    static_configs:
+      - targets: ['match-service:20002']
+
+  - job_name: 'club-service'
+    metrics_path: '/actuator/prometheus'
+    static_configs:
+      - targets: ['club-service:20003']
+
+  - job_name: 'seat-service'
+    metrics_path: '/actuator/prometheus'
+    static_configs:
+      - targets: ['seat-service:20004']
+
+  - job_name: 'reservation-service'
+    metrics_path: '/actuator/prometheus'
+    static_configs:
+      - targets: ['reservation-service:20005']
+
+  - job_name: 'payment-service'
+    metrics_path: '/actuator/prometheus'
+    static_configs:
+      - targets: ['payment-service:20006']
+
+  - job_name: 'queue-service'
+    metrics_path: '/actuator/prometheus'
+    static_configs:
+      - targets: ['queue-service:20007']
+
+  - job_name: 'gateway-service'
+    metrics_path: '/actuator/prometheus'
+    static_configs:
+      - targets: ['gateway-service:10000']
+
+  - job_name: 'config-server'
+    metrics_path: '/actuator/prometheus'
+    static_configs:
+      - targets: ['config-server:10002']
+
+  - job_name: 'eureka-server'
+    metrics_path: '/actuator/prometheus'
+    static_configs:
+      - targets: ['eureka-server:10001']
+
+  - job_name: 'zipkin'
+    metrics_path: '/prometheus'
+    static_configs:
+      - targets: ['zipkin:9411']
