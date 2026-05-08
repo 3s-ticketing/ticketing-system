@@ -1,0 +1,113 @@
+server:
+  http_listen_port: 9080
+  grpc_listen_port: 0
+
+positions:
+  filename: /tmp/positions.yaml
+
+clients:
+  - url: http://loki:3100/loki/api/v1/push
+
+scrape_configs:
+  - job_name: user-service
+    static_configs:
+      - targets:
+          - localhost
+        labels:
+          job: user-service
+          env: docker
+          __path__: /var/log/user-service/*.log
+
+  - job_name: match-service
+    static_configs:
+      - targets:
+          - localhost
+        labels:
+          job: match-service
+          env: docker
+          __path__: /var/log/match-service/*.log
+
+  - job_name: club-service
+    static_configs:
+      - targets:
+          - localhost
+        labels:
+          job: club-service
+          env: docker
+          __path__: /var/log/club-service/*.log
+
+  - job_name: seat-service
+    static_configs:
+      - targets:
+          - localhost
+        labels:
+          job: seat-service
+          env: docker
+          __path__: /var/log/seat-service/*.log
+
+  - job_name: reservation-service
+    static_configs:
+      - targets:
+          - localhost
+        labels:
+          job: reservation-service
+          env: docker
+          __path__: /var/log/reservation-service/*.log
+
+  - job_name: payment-service
+    static_configs:
+      - targets:
+          - localhost
+        labels:
+          job: payment-service
+          env: docker
+          __path__: /var/log/payment-service/*.log
+
+  - job_name: queue-service
+    static_configs:
+      - targets:
+          - localhost
+        labels:
+          job: queue-service
+          env: docker
+          __path__: /var/log/queue-service/*.log
+
+  - job_name: gateway-service
+    static_configs:
+      - targets:
+          - localhost
+        labels:
+          job: gateway-service
+          env: docker
+          __path__: /var/log/gateway-service/*.log
+
+  - job_name: config-server
+    static_configs:
+      - targets:
+          - localhost
+        labels:
+          job: config-server
+          env: docker
+          __path__: /var/log/config-server/*.log
+
+  - job_name: eureka-server
+    static_configs:
+      - targets:
+          - localhost
+        labels:
+          job: eureka-server
+          env: docker
+          __path__: /var/log/eureka-server/*.log
+
+  - job_name: docker-containers
+    docker_sd_configs:
+      - host: unix:///var/run/docker.sock
+        refresh_interval: 5s
+    relabel_configs:
+      - source_labels: ['__meta_docker_container_name']
+        regex: '/(.+)'
+        target_label: 'container'
+      - source_labels: ['__meta_docker_container_log_stream']
+        target_label: 'stream'
+      - source_labels: ['__meta_docker_container_label_com_docker_compose_service']
+        target_label: 'service'
