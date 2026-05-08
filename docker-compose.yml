@@ -135,6 +135,49 @@ services:
     networks:
       - ticketing-network
 
+  gateway-service:
+    build:
+      context: ./gateway-service
+      dockerfile: Dockerfile
+      args:
+        GPR_USER: ${GPR_USER}
+        GPR_TOKEN: ${GPR_TOKEN}
+    container_name: ticketing-gateway-service
+    restart: unless-stopped
+    ports:
+      - "${GATEWAY_PORT:-10000}:10000"
+    env_file:
+      - .env
+    environment:
+      TZ: Asia/Seoul
+      GATEWAY_PORT: 10000
+
+      SPRING_CONFIG_IMPORT: optional:configserver:http://config-server:10002
+      SPRING_CLOUD_CONFIG_URI: http://config-server:10002
+
+      EUREKA_DEFAULT_ZONE: http://eureka-server:10001/eureka/
+      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://eureka-server:10001/eureka/
+      EUREKA_CLIENT_SERVICE_URL_DEFAULTZONE: http://eureka-server:10001/eureka/
+
+      JWT_ISSUER_URI: http://localhost:18080/realms/ticketing
+      JWT_JWK_SET_URI: http://keycloak:8080/realms/ticketing/protocol/openid-connect/certs
+
+      KEYCLOAK_ISSUER_URI: http://localhost:18080/realms/ticketing
+      KEYCLOAK_JWK_SET_URI: http://keycloak:8080/realms/ticketing/protocol/openid-connect/certs
+
+      SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_ISSUER_URI: http://localhost:18080/realms/ticketing
+      SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_JWK_SET_URI: http://keycloak:8080/realms/ticketing/protocol/openid-connect/certs
+
+    depends_on:
+      config-server:
+        condition: service_started
+      eureka-server:
+        condition: service_started
+      keycloak:
+        condition: service_started
+    networks:
+      - ticketing-network
+
   user-service:
     build:
       context: ./user-service
@@ -150,8 +193,39 @@ services:
       - .env
     environment:
       TZ: Asia/Seoul
+      SERVER_PORT: 20001
+
       DB_SCHEMA: user_service
       SPRING_DATASOURCE_URL: "jdbc:postgresql://postgres:5432/${POSTGRES_DB:-ticketing}?currentSchema=user_service"
+
+      SPRING_CONFIG_IMPORT: optional:configserver:http://config-server:10002
+      SPRING_CLOUD_CONFIG_URI: http://config-server:10002
+
+      EUREKA_DEFAULT_ZONE: http://eureka-server:10001/eureka/
+      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://eureka-server:10001/eureka/
+      EUREKA_CLIENT_SERVICE_URL_DEFAULTZONE: http://eureka-server:10001/eureka/
+
+      SPRING_APPLICATION_JSON: >
+        {
+          "eureka": {
+            "client": {
+              "serviceUrl": {
+                "defaultZone": "http://eureka-server:10001/eureka/"
+              },
+              "service-url": {
+                "defaultZone": "http://eureka-server:10001/eureka/"
+              }
+            }
+          }
+        }
+
+      KEYCLOAK_SERVER_URL: http://keycloak:8080
+      KEYCLOAK_ISSUER_URI: http://localhost:18080/realms/ticketing
+      KEYCLOAK_JWK_SET_URI: http://keycloak:8080/realms/ticketing/protocol/openid-connect/certs
+
+      SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_ISSUER_URI: http://localhost:18080/realms/ticketing
+      SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_JWK_SET_URI: http://keycloak:8080/realms/ticketing/protocol/openid-connect/certs
+
     depends_on:
       postgres:
         condition: service_healthy
@@ -159,6 +233,12 @@ services:
         condition: service_healthy
       kafka:
         condition: service_healthy
+      keycloak:
+        condition: service_started
+      config-server:
+        condition: service_started
+      eureka-server:
+        condition: service_started
     networks:
       - ticketing-network
 
@@ -177,8 +257,37 @@ services:
       - .env
     environment:
       TZ: Asia/Seoul
+      SERVER_PORT: 20002
+
       DB_SCHEMA: match_service
       SPRING_DATASOURCE_URL: "jdbc:postgresql://postgres:5432/${POSTGRES_DB:-ticketing}?currentSchema=match_service"
+
+      SPRING_CONFIG_IMPORT: optional:configserver:http://config-server:10002
+      SPRING_CLOUD_CONFIG_URI: http://config-server:10002
+
+      EUREKA_DEFAULT_ZONE: http://eureka-server:10001/eureka/
+      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://eureka-server:10001/eureka/
+      EUREKA_CLIENT_SERVICE_URL_DEFAULTZONE: http://eureka-server:10001/eureka/
+
+      SPRING_APPLICATION_JSON: >
+        {
+          "eureka": {
+            "client": {
+              "serviceUrl": {
+                "defaultZone": "http://eureka-server:10001/eureka/"
+              },
+              "service-url": {
+                "defaultZone": "http://eureka-server:10001/eureka/"
+              }
+            }
+          }
+        }
+
+      KEYCLOAK_ISSUER_URI: http://localhost:18080/realms/ticketing
+      KEYCLOAK_JWK_SET_URI: http://keycloak:8080/realms/ticketing/protocol/openid-connect/certs
+      SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_ISSUER_URI: http://localhost:18080/realms/ticketing
+      SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_JWK_SET_URI: http://keycloak:8080/realms/ticketing/protocol/openid-connect/certs
+
     depends_on:
       postgres:
         condition: service_healthy
@@ -186,6 +295,12 @@ services:
         condition: service_healthy
       kafka:
         condition: service_healthy
+      keycloak:
+        condition: service_started
+      config-server:
+        condition: service_started
+      eureka-server:
+        condition: service_started
     networks:
       - ticketing-network
 
@@ -204,8 +319,37 @@ services:
       - .env
     environment:
       TZ: Asia/Seoul
+      SERVER_PORT: 20003
+
       DB_SCHEMA: club_service
       SPRING_DATASOURCE_URL: "jdbc:postgresql://postgres:5432/${POSTGRES_DB:-ticketing}?currentSchema=club_service"
+
+      SPRING_CONFIG_IMPORT: optional:configserver:http://config-server:10002
+      SPRING_CLOUD_CONFIG_URI: http://config-server:10002
+
+      EUREKA_DEFAULT_ZONE: http://eureka-server:10001/eureka/
+      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://eureka-server:10001/eureka/
+      EUREKA_CLIENT_SERVICE_URL_DEFAULTZONE: http://eureka-server:10001/eureka/
+
+      SPRING_APPLICATION_JSON: >
+        {
+          "eureka": {
+            "client": {
+              "serviceUrl": {
+                "defaultZone": "http://eureka-server:10001/eureka/"
+              },
+              "service-url": {
+                "defaultZone": "http://eureka-server:10001/eureka/"
+              }
+            }
+          }
+        }
+
+      KEYCLOAK_ISSUER_URI: http://localhost:18080/realms/ticketing
+      KEYCLOAK_JWK_SET_URI: http://keycloak:8080/realms/ticketing/protocol/openid-connect/certs
+      SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_ISSUER_URI: http://localhost:18080/realms/ticketing
+      SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_JWK_SET_URI: http://keycloak:8080/realms/ticketing/protocol/openid-connect/certs
+
     depends_on:
       postgres:
         condition: service_healthy
@@ -213,6 +357,12 @@ services:
         condition: service_healthy
       kafka:
         condition: service_healthy
+      keycloak:
+        condition: service_started
+      config-server:
+        condition: service_started
+      eureka-server:
+        condition: service_started
     networks:
       - ticketing-network
 
@@ -231,8 +381,37 @@ services:
       - .env
     environment:
       TZ: Asia/Seoul
+      SERVER_PORT: 20004
+
       DB_SCHEMA: seat_service
       SPRING_DATASOURCE_URL: "jdbc:postgresql://postgres:5432/${POSTGRES_DB:-ticketing}?currentSchema=seat_service"
+
+      SPRING_CONFIG_IMPORT: optional:configserver:http://config-server:10002
+      SPRING_CLOUD_CONFIG_URI: http://config-server:10002
+
+      EUREKA_DEFAULT_ZONE: http://eureka-server:10001/eureka/
+      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://eureka-server:10001/eureka/
+      EUREKA_CLIENT_SERVICE_URL_DEFAULTZONE: http://eureka-server:10001/eureka/
+
+      SPRING_APPLICATION_JSON: >
+        {
+          "eureka": {
+            "client": {
+              "serviceUrl": {
+                "defaultZone": "http://eureka-server:10001/eureka/"
+              },
+              "service-url": {
+                "defaultZone": "http://eureka-server:10001/eureka/"
+              }
+            }
+          }
+        }
+
+      KEYCLOAK_ISSUER_URI: http://localhost:18080/realms/ticketing
+      KEYCLOAK_JWK_SET_URI: http://keycloak:8080/realms/ticketing/protocol/openid-connect/certs
+      SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_ISSUER_URI: http://localhost:18080/realms/ticketing
+      SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_JWK_SET_URI: http://keycloak:8080/realms/ticketing/protocol/openid-connect/certs
+
     depends_on:
       postgres:
         condition: service_healthy
@@ -240,6 +419,12 @@ services:
         condition: service_healthy
       kafka:
         condition: service_healthy
+      keycloak:
+        condition: service_started
+      config-server:
+        condition: service_started
+      eureka-server:
+        condition: service_started
     networks:
       - ticketing-network
 
@@ -258,8 +443,37 @@ services:
       - .env
     environment:
       TZ: Asia/Seoul
+      SERVER_PORT: 20005
+
       DB_SCHEMA: reservation_service
       SPRING_DATASOURCE_URL: "jdbc:postgresql://postgres:5432/${POSTGRES_DB:-ticketing}?currentSchema=reservation_service"
+
+      SPRING_CONFIG_IMPORT: optional:configserver:http://config-server:10002
+      SPRING_CLOUD_CONFIG_URI: http://config-server:10002
+
+      EUREKA_DEFAULT_ZONE: http://eureka-server:10001/eureka/
+      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://eureka-server:10001/eureka/
+      EUREKA_CLIENT_SERVICE_URL_DEFAULTZONE: http://eureka-server:10001/eureka/
+
+      SPRING_APPLICATION_JSON: >
+        {
+          "eureka": {
+            "client": {
+              "serviceUrl": {
+                "defaultZone": "http://eureka-server:10001/eureka/"
+              },
+              "service-url": {
+                "defaultZone": "http://eureka-server:10001/eureka/"
+              }
+            }
+          }
+        }
+
+      KEYCLOAK_ISSUER_URI: http://localhost:18080/realms/ticketing
+      KEYCLOAK_JWK_SET_URI: http://keycloak:8080/realms/ticketing/protocol/openid-connect/certs
+      SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_ISSUER_URI: http://localhost:18080/realms/ticketing
+      SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_JWK_SET_URI: http://keycloak:8080/realms/ticketing/protocol/openid-connect/certs
+
     depends_on:
       postgres:
         condition: service_healthy
@@ -267,6 +481,12 @@ services:
         condition: service_healthy
       kafka:
         condition: service_healthy
+      keycloak:
+        condition: service_started
+      config-server:
+        condition: service_started
+      eureka-server:
+        condition: service_started
     networks:
       - ticketing-network
 
@@ -285,13 +505,48 @@ services:
       - .env
     environment:
       TZ: Asia/Seoul
+      SERVER_PORT: 20006
+
       DB_SCHEMA: payment_service
       SPRING_DATASOURCE_URL: "jdbc:postgresql://postgres:5432/${POSTGRES_DB:-ticketing}?currentSchema=payment_service"
+
+      SPRING_CONFIG_IMPORT: optional:configserver:http://config-server:10002
+      SPRING_CLOUD_CONFIG_URI: http://config-server:10002
+
+      EUREKA_DEFAULT_ZONE: http://eureka-server:10001/eureka/
+      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://eureka-server:10001/eureka/
+      EUREKA_CLIENT_SERVICE_URL_DEFAULTZONE: http://eureka-server:10001/eureka/
+
+      SPRING_APPLICATION_JSON: >
+        {
+          "eureka": {
+            "client": {
+              "serviceUrl": {
+                "defaultZone": "http://eureka-server:10001/eureka/"
+              },
+              "service-url": {
+                "defaultZone": "http://eureka-server:10001/eureka/"
+              }
+            }
+          }
+        }
+
+      KEYCLOAK_ISSUER_URI: http://localhost:18080/realms/ticketing
+      KEYCLOAK_JWK_SET_URI: http://keycloak:8080/realms/ticketing/protocol/openid-connect/certs
+      SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_ISSUER_URI: http://localhost:18080/realms/ticketing
+      SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_JWK_SET_URI: http://keycloak:8080/realms/ticketing/protocol/openid-connect/certs
+
     depends_on:
       postgres:
         condition: service_healthy
       kafka:
         condition: service_healthy
+      keycloak:
+        condition: service_started
+      config-server:
+        condition: service_started
+      eureka-server:
+        condition: service_started
     networks:
       - ticketing-network
 
@@ -311,8 +566,37 @@ services:
     environment:
       TZ: Asia/Seoul
       SPRING_PROFILES_ACTIVE: docker
+      SERVER_PORT: 20007
+
       DB_SCHEMA: queue_service
       SPRING_DATASOURCE_URL: "jdbc:postgresql://postgres:5432/${POSTGRES_DB:-ticketing}?currentSchema=queue_service"
+
+      SPRING_CONFIG_IMPORT: optional:configserver:http://config-server:10002
+      SPRING_CLOUD_CONFIG_URI: http://config-server:10002
+
+      EUREKA_DEFAULT_ZONE: http://eureka-server:10001/eureka/
+      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://eureka-server:10001/eureka/
+      EUREKA_CLIENT_SERVICE_URL_DEFAULTZONE: http://eureka-server:10001/eureka/
+
+      SPRING_APPLICATION_JSON: >
+        {
+          "eureka": {
+            "client": {
+              "serviceUrl": {
+                "defaultZone": "http://eureka-server:10001/eureka/"
+              },
+              "service-url": {
+                "defaultZone": "http://eureka-server:10001/eureka/"
+              }
+            }
+          }
+        }
+
+      KEYCLOAK_ISSUER_URI: http://localhost:18080/realms/ticketing
+      KEYCLOAK_JWK_SET_URI: http://keycloak:8080/realms/ticketing/protocol/openid-connect/certs
+      SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_ISSUER_URI: http://localhost:18080/realms/ticketing
+      SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_JWK_SET_URI: http://keycloak:8080/realms/ticketing/protocol/openid-connect/certs
+
     depends_on:
       postgres:
         condition: service_healthy
@@ -320,24 +604,12 @@ services:
         condition: service_healthy
       kafka:
         condition: service_healthy
-    networks:
-      - ticketing-network
-
-  gateway-service:
-    build:
-      context: ./gateway-service
-      dockerfile: Dockerfile
-      args:
-        GPR_USER: ${GPR_USER}
-        GPR_TOKEN: ${GPR_TOKEN}
-    container_name: ticketing-gateway-service
-    restart: unless-stopped
-    ports:
-      - "${GATEWAY_PORT:-10000}:10000"
-    env_file:
-      - .env
-    environment:
-      TZ: Asia/Seoul
+      keycloak:
+        condition: service_started
+      config-server:
+        condition: service_started
+      eureka-server:
+        condition: service_started
     networks:
       - ticketing-network
 
