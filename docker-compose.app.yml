@@ -1,0 +1,399 @@
+x-app-logging: &app-logging
+  driver: "json-file"
+  options:
+    max-size: "10m"
+    max-file: "3"
+
+x-build-args: &build-args
+  GPR_USER: ${GPR_USER}
+  GPR_TOKEN: ${GPR_TOKEN}
+
+x-config-env: &config-env
+  SPRING_CONFIG_IMPORT: optional:configserver:http://config-server:10002
+  SPRING_CLOUD_CONFIG_URI: http://config-server:10002
+
+x-eureka-env: &eureka-env
+  EUREKA_DEFAULT_ZONE: http://eureka-server:10001/eureka/
+  EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://eureka-server:10001/eureka/
+  EUREKA_CLIENT_SERVICE_URL_DEFAULTZONE: http://eureka-server:10001/eureka/
+  EUREKA_CLIENT_SERVICE_URL_DEFAULT_ZONE: http://eureka-server:10001/eureka/
+  JAVA_TOOL_OPTIONS: >-
+    -Deureka.client.serviceUrl.defaultZone=http://eureka-server:10001/eureka/
+    -Deureka.client.service-url.defaultZone=http://eureka-server:10001/eureka/
+  SPRING_APPLICATION_JSON: >
+    {
+      "eureka": {
+        "client": {
+          "serviceUrl": {
+            "defaultZone": "http://eureka-server:10001/eureka/"
+          },
+          "service-url": {
+            "defaultZone": "http://eureka-server:10001/eureka/"
+          }
+        }
+      }
+    }
+
+x-keycloak-env: &keycloak-env
+  KEYCLOAK_ISSUER_URI: http://localhost:18080/realms/ticketing
+  KEYCLOAK_JWK_SET_URI: http://keycloak:8080/realms/ticketing/protocol/openid-connect/certs
+  SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_ISSUER_URI: http://localhost:18080/realms/ticketing
+  SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_JWK_SET_URI: http://keycloak:8080/realms/ticketing/protocol/openid-connect/certs
+
+services:
+  config-server:
+    build:
+      context: ../config-server
+      dockerfile: Dockerfile
+    container_name: ticketing-config-server
+    restart: unless-stopped
+    ports:
+      - "${CONFIG_SERVER_HOST_PORT:-10002}:10002"
+    env_file:
+      - .env
+    environment:
+      TZ: Asia/Seoul
+      SPRING_CONFIG_IMPORT: ""
+      SERVER_PORT: 10002
+    networks:
+      - ticketing-network
+    logging: *app-logging
+
+  eureka-server:
+    build:
+      context: ../eureka-server
+      dockerfile: Dockerfile
+    container_name: ticketing-eureka
+    restart: unless-stopped
+    ports:
+      - "${EUREKA_HOST_PORT:-10001}:10001"
+    env_file:
+      - .env
+    environment:
+      TZ: Asia/Seoul
+      SERVER_PORT: 10001
+      EUREKA_HOST_PORT: 10001
+    networks:
+      - ticketing-network
+    logging: *app-logging
+
+  gateway-service:
+    build:
+      context: ../gateway-service
+      dockerfile: Dockerfile
+      args:
+        <<: *build-args
+    container_name: ticketing-gateway-service
+    restart: unless-stopped
+    ports:
+      - "${GATEWAY_PORT:-10000}:10000"
+    env_file:
+      - .env
+    environment:
+      <<:
+        - *config-env
+        - *eureka-env
+        - *keycloak-env
+      TZ: Asia/Seoul
+      SERVER_PORT: 10000
+      GATEWAY_PORT: 10000
+      JWT_ISSUER_URI: http://localhost:18080/realms/ticketing
+      JWT_JWK_SET_URI: http://keycloak:8080/realms/ticketing/protocol/openid-connect/certs
+    depends_on:
+      config-server:
+        condition: service_started
+      eureka-server:
+        condition: service_started
+    networks:
+      - ticketing-network
+    logging: *app-logging
+
+  user-service:
+    build:
+      context: ../user-service
+      dockerfile: Dockerfile
+      args:
+        <<: *build-args
+    container_name: ticketing-user-service
+    restart: unless-stopped
+    ports:
+      - "${USER_SERVICE_PORT:-20001}:20001"
+    env_file:
+      - .env
+    environment:
+      <<:
+        - *config-env
+        - *eureka-env
+        - *keycloak-env
+      TZ: Asia/Seoul
+      SERVER_PORT: 20001
+      USER_PORT: 20001
+      USER_SERVICE_PORT: 20001
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_NAME: ${POSTGRES_DB:-ticketing}
+      DB_SCHEMA: user_service
+      DB_USERNAME: ${POSTGRES_USER:-ticketing}
+      DB_PASSWORD: ${POSTGRES_PASSWORD:-ticketing1234}
+      SPRING_DATASOURCE_URL: "jdbc:postgresql://postgres:5432/${POSTGRES_DB:-ticketing}?currentSchema=user_service"
+      KEYCLOAK_SERVER_URL: http://keycloak:8080
+    depends_on:
+      config-server:
+        condition: service_started
+      eureka-server:
+        condition: service_started
+    networks:
+      - ticketing-network
+    logging: *app-logging
+
+  match-service:
+    build:
+      context: ../match-service
+      dockerfile: Dockerfile
+      args:
+        <<: *build-args
+    container_name: ticketing-match-service
+    restart: unless-stopped
+    ports:
+      - "${MATCH_SERVICE_PORT:-20002}:20002"
+    env_file:
+      - .env
+    environment:
+      <<:
+        - *config-env
+        - *eureka-env
+        - *keycloak-env
+      TZ: Asia/Seoul
+      SERVER_PORT: 20002
+      MATCH_PORT: 20002
+      SPRING_APPLICATION_NAME: match-service
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_NAME: ${POSTGRES_DB:-ticketing}
+      DB_SCHEMA: match_service
+      DB_USERNAME: ${POSTGRES_USER:-ticketing}
+      DB_PASSWORD: ${POSTGRES_PASSWORD:-ticketing1234}
+      SPRING_DATASOURCE_URL: "jdbc:postgresql://postgres:5432/${POSTGRES_DB:-ticketing}?currentSchema=match_service"
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      SPRING_DATA_REDIS_HOST: redis
+      SPRING_DATA_REDIS_PORT: 6379
+      KAFKA_BOOTSTRAP_SERVERS: kafka:9092
+      SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka:9092
+    depends_on:
+      config-server:
+        condition: service_started
+      eureka-server:
+        condition: service_started
+    networks:
+      - ticketing-network
+    logging: *app-logging
+
+  club-service:
+    build:
+      context: ../club-service
+      dockerfile: Dockerfile
+      args:
+        <<: *build-args
+    container_name: ticketing-club-service
+    restart: unless-stopped
+    ports:
+      - "${CLUB_PORT:-20003}:20003"
+    env_file:
+      - .env
+    environment:
+      <<:
+        - *config-env
+        - *eureka-env
+        - *keycloak-env
+      TZ: Asia/Seoul
+      SERVER_PORT: 20003
+      CLUB_PORT: 20003
+      CLUB_SERVICE_PORT: 20003
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_NAME: ${POSTGRES_DB:-ticketing}
+      DB_SCHEMA: club_service
+      DB_USERNAME: ${POSTGRES_USER:-ticketing}
+      DB_PASSWORD: ${POSTGRES_PASSWORD:-ticketing1234}
+      SPRING_DATASOURCE_URL: "jdbc:postgresql://postgres:5432/${POSTGRES_DB:-ticketing}?currentSchema=club_service"
+    depends_on:
+      config-server:
+        condition: service_started
+      eureka-server:
+        condition: service_started
+    networks:
+      - ticketing-network
+    logging: *app-logging
+
+  seat-service:
+    build:
+      context: ../seat-service
+      dockerfile: Dockerfile
+      args:
+        <<: *build-args
+    container_name: ticketing-seat-service
+    restart: unless-stopped
+    ports:
+      - "${SEAT_SERVICE_PORT:-20004}:20004"
+    env_file:
+      - .env
+    environment:
+      <<:
+        - *config-env
+        - *eureka-env
+        - *keycloak-env
+      TZ: Asia/Seoul
+      SERVER_PORT: 20004
+      SEAT_PORT: 20004
+      SEAT_SERVICE_PORT: 20004
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_NAME: ${POSTGRES_DB:-ticketing}
+      DB_SCHEMA: seat_service
+      DB_USERNAME: ${POSTGRES_USER:-ticketing}
+      DB_PASSWORD: ${POSTGRES_PASSWORD:-ticketing1234}
+      SPRING_DATASOURCE_URL: "jdbc:postgresql://postgres:5432/${POSTGRES_DB:-ticketing}?currentSchema=seat_service"
+    depends_on:
+      config-server:
+        condition: service_started
+      eureka-server:
+        condition: service_started
+    networks:
+      - ticketing-network
+    logging: *app-logging
+
+  reservation-service:
+    build:
+      context: ../reservation-service
+      dockerfile: Dockerfile
+      args:
+        <<: *build-args
+    container_name: ticketing-reservation-service
+    restart: unless-stopped
+    ports:
+      - "${RESERVATION_SERVICE_PORT:-20005}:20005"
+    env_file:
+      - .env
+    environment:
+      <<:
+        - *config-env
+        - *eureka-env
+        - *keycloak-env
+      TZ: Asia/Seoul
+      SERVER_PORT: 20005
+      RESERVATION_PORT: 20005
+      RESERVATION_SERVICE_PORT: 20005
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_NAME: ${POSTGRES_DB:-ticketing}
+      DB_SCHEMA: reservation_service
+      DB_USERNAME: ${POSTGRES_USER:-ticketing}
+      DB_PASSWORD: ${POSTGRES_PASSWORD:-ticketing1234}
+      SPRING_DATASOURCE_URL: "jdbc:postgresql://postgres:5432/${POSTGRES_DB:-ticketing}?currentSchema=reservation_service"
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      SPRING_DATA_REDIS_HOST: redis
+      SPRING_DATA_REDIS_PORT: 6379
+      KAFKA_BOOTSTRAP_SERVERS: kafka:9092
+      SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka:9092
+    depends_on:
+      config-server:
+        condition: service_started
+      eureka-server:
+        condition: service_started
+    networks:
+      - ticketing-network
+    logging: *app-logging
+
+  payment-service:
+    build:
+      context: ../payment-service
+      dockerfile: Dockerfile
+      args:
+        <<: *build-args
+    container_name: ticketing-payment-service
+    restart: unless-stopped
+    ports:
+      - "${PAYMENT_SERVICE_PORT:-20006}:20006"
+    env_file:
+      - .env
+    environment:
+      <<:
+        - *config-env
+        - *eureka-env
+        - *keycloak-env
+      TZ: Asia/Seoul
+      SERVER_PORT: 20006
+      PAYMENT_PORT: 20006
+      PAYMENT_SERVICE_PORT: 20006
+      SPRING_PROFILES_ACTIVE: loadtest
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_NAME: ${POSTGRES_DB:-ticketing}
+      DB_SCHEMA: payment_service
+      DB_USERNAME: ${POSTGRES_USER:-ticketing}
+      DB_PASSWORD: ${POSTGRES_PASSWORD:-ticketing1234}
+      SPRING_DATASOURCE_URL: "jdbc:postgresql://postgres:5432/${POSTGRES_DB:-ticketing}?currentSchema=payment_service"
+      KAFKA_BOOTSTRAP_SERVERS: kafka:9092
+      SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka:9092
+    depends_on:
+      config-server:
+        condition: service_started
+      eureka-server:
+        condition: service_started
+    networks:
+      - ticketing-network
+    logging: *app-logging
+
+  queue-service:
+    build:
+      context: ../queue-service
+      dockerfile: Dockerfile
+      args:
+        <<: *build-args
+    container_name: ticketing-queue-service
+    restart: unless-stopped
+    ports:
+      - "${QUEUE_SERVICE_PORT:-20007}:20007"
+    env_file:
+      - .env
+    environment:
+      <<:
+        - *config-env
+        - *eureka-env
+        - *keycloak-env
+      TZ: Asia/Seoul
+      SPRING_PROFILES_ACTIVE: docker
+      SERVER_PORT: 20007
+      QUEUE_PORT: 20007
+      QUEUE_SERVICE_PORT: 20007
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_NAME: ${POSTGRES_DB:-ticketing}
+      DB_SCHEMA: queue_service
+      DB_USERNAME: ${POSTGRES_USER:-ticketing}
+      DB_PASSWORD: ${POSTGRES_PASSWORD:-ticketing1234}
+      SPRING_DATASOURCE_URL: "jdbc:postgresql://postgres:5432/${POSTGRES_DB:-ticketing}?currentSchema=queue_service"
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      SPRING_DATA_REDIS_HOST: redis
+      SPRING_DATA_REDIS_PORT: 6379
+      KAFKA_BOOTSTRAP_SERVERS: kafka:9092
+      SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka:9092
+    depends_on:
+      config-server:
+        condition: service_started
+      eureka-server:
+        condition: service_started
+    networks:
+      - ticketing-network
+    logging: *app-logging
+
+networks:
+  ticketing-network:
+    external: true
+    name: ticketing-network
+
+volumes:
+  queue-logs:
