@@ -47,6 +47,20 @@ services:
         max-size: "10m"
         max-file: "3"
 
+  redis-exporter:
+    image: oliver006/redis_exporter:v1.67.0
+    container_name: redis-exporter
+    restart: always
+    environment:
+      REDIS_ADDR: redis://redis:6379
+    ports:
+      - "9121:9121"
+    networks:
+      - ticketing-network
+    depends_on:
+      redis:
+        condition: service_healthy
+
   kafka:
     image: apache/kafka:3.7.2
     container_name: ticketing-kafka
@@ -72,12 +86,19 @@ services:
       KAFKA_LOG_RETENTION_HOURS: 1
       KAFKA_LOG_RETENTION_BYTES: 1073741824
       KAFKA_LOG_SEGMENT_BYTES: 104857600
+
+      # JMX 설정
+      KAFKA_JMX_PORT: 9999
+      KAFKA_JMX_HOSTNAME: kafka
+      KAFKA_OPTS: >-
+        -javaagent:/opt/jmx-exporter/jmx_prometheus_javaagent.jar=7071:/opt/jmx-exporter/kafka-jmx.yml
     volumes:
       - kafka-data:/var/lib/kafka/data
+      - ./monitoring/grafana/provisioning/jmx-exporter:/opt/jmx-exporter
     networks:
       - ticketing-network
     healthcheck:
-      test: ["CMD-SHELL", "/opt/kafka/bin/kafka-topics.sh --bootstrap-server localhost:9092 --list"]
+      test: ["CMD-SHELL", "nc -z localhost 9092 || exit 1"]
       interval: 10s
       timeout: 10s
       retries: 10
@@ -86,6 +107,19 @@ services:
       options:
         max-size: "10m"
         max-file: "3"
+
+  kafka-exporter:
+    image: danielqsj/kafka-exporter
+    container_name: kafka-exporter
+    restart: unless-stopped
+    ports:
+      - "9308:9308"
+    command:
+      - "--kafka.server=kafka:9092"
+    depends_on:
+      - kafka
+    networks:
+      - ticketing-network
 
   keycloak:
     image: quay.io/keycloak/keycloak:26.0.0
