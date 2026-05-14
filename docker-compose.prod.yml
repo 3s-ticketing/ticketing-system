@@ -5,11 +5,14 @@
 
 services:
   keycloak:
+    command: start --optimized --import-realm
     environment:
-      KC_DB_URL: jdbc:postgresql://${DB_HOST}:${DB_PORT:-5432}/${KEYCLOAK_DB:-keycloak}
-      KC_DB_USERNAME: ${DB_USERNAME}
+      KC_DB_URL: jdbc:postgresql://${DB_HOST:?DB_HOST is required}:${DB_PORT:-5432}/${KEYCLOAK_DB:-keycloak}
+      KC_DB_USERNAME: ${DB_USERNAME:?DB_USERNAME is required}
       KC_DB_PASSWORD: ${DB_PASSWORD:?DB_PASSWORD is required}
       KEYCLOAK_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD:?KEYCLOAK_ADMIN_PASSWORD is required}
+      KC_HTTP_ENABLED: "true"
+      KC_HOSTNAME_STRICT: "false"
 
   gateway-service:
     environment:
