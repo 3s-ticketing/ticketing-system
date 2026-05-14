@@ -80,7 +80,10 @@ services:
       KC_HEALTH_ENABLED: "true"
       KC_METRICS_ENABLED: "true"
       JAVA_OPTS_APPEND: "${KEYCLOAK_JAVA_OPTS_APPEND:--Xms256m -Xmx512m}"
-    command: start-dev --import-realm
+    entrypoint: ["/bin/sh", "-c"]
+    command: >
+      /opt/keycloak/bin/kc.sh build --db=postgres --health-enabled=true --metrics-enabled=true &&
+      exec /opt/keycloak/bin/kc.sh start-dev --import-realm
     volumes:
       - ./docker/keycloak/import:/opt/keycloak/data/import:ro
     networks:
