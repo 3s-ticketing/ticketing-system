@@ -35,10 +35,10 @@ x-eureka-env: &eureka-env
     }
 
 x-keycloak-env: &keycloak-env
-  KEYCLOAK_ISSUER_URI: http://localhost:18080/realms/ticketing
-  KEYCLOAK_JWK_SET_URI: http://keycloak:8080/realms/ticketing/protocol/openid-connect/certs
-  SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_ISSUER_URI: http://localhost:18080/realms/ticketing
-  SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_JWK_SET_URI: http://keycloak:8080/realms/ticketing/protocol/openid-connect/certs
+  KEYCLOAK_ISSUER_URI: ${JWT_ISSUER_URI:-http://localhost:18080/realms/ticketing}
+  KEYCLOAK_JWK_SET_URI: ${JWT_JWK_SET_URI:-http://keycloak:8080/realms/ticketing/protocol/openid-connect/certs}
+  SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_ISSUER_URI: ${JWT_ISSUER_URI:-http://localhost:18080/realms/ticketing}
+  SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_JWK_SET_URI: ${JWT_JWK_SET_URI:-http://keycloak:8080/realms/ticketing/protocol/openid-connect/certs}
 
 services:
   config-server:
@@ -97,8 +97,8 @@ services:
       TZ: Asia/Seoul
       SERVER_PORT: 10000
       GATEWAY_PORT: 10000
-      JWT_ISSUER_URI: http://localhost:18080/realms/ticketing
-      JWT_JWK_SET_URI: http://keycloak:8080/realms/ticketing/protocol/openid-connect/certs
+      JWT_ISSUER_URI: ${JWT_ISSUER_URI:-http://localhost:18080/realms/ticketing}
+      JWT_JWK_SET_URI: ${JWT_JWK_SET_URI:-http://keycloak:8080/realms/ticketing/protocol/openid-connect/certs}
     depends_on:
       config-server:
         condition: service_started
@@ -129,13 +129,12 @@ services:
       SERVER_PORT: 20001
       USER_PORT: 20001
       USER_SERVICE_PORT: 20001
-      DB_HOST: postgres
-      DB_PORT: 5432
-      DB_NAME: ${POSTGRES_DB:-ticketing}
+      DB_HOST: ${DB_HOST:-postgres}
+      DB_PORT: ${DB_PORT:-5432}
+      DB_NAME: ${DB_NAME:-ticketing}
       DB_SCHEMA: user_service
-      DB_USERNAME: ${POSTGRES_USER:-ticketing}
-      DB_PASSWORD: ${POSTGRES_PASSWORD:-ticketing1234}
-      SPRING_DATASOURCE_URL: "jdbc:postgresql://postgres:5432/${POSTGRES_DB:-ticketing}?currentSchema=user_service"
+      DB_USERNAME: ${DB_USERNAME:-ticketing}
+      DB_PASSWORD: ${DB_PASSWORD:?DB_PASSWORD is required}
       KEYCLOAK_SERVER_URL: http://keycloak:8080
     depends_on:
       config-server:
@@ -167,13 +166,12 @@ services:
       SERVER_PORT: 20002
       MATCH_PORT: 20002
       SPRING_APPLICATION_NAME: match-service
-      DB_HOST: postgres
-      DB_PORT: 5432
-      DB_NAME: ${POSTGRES_DB:-ticketing}
+      DB_HOST: ${DB_HOST:-postgres}
+      DB_PORT: ${DB_PORT:-5432}
+      DB_NAME: ${DB_NAME:-ticketing}
       DB_SCHEMA: match_service
-      DB_USERNAME: ${POSTGRES_USER:-ticketing}
-      DB_PASSWORD: ${POSTGRES_PASSWORD:-ticketing1234}
-      SPRING_DATASOURCE_URL: "jdbc:postgresql://postgres:5432/${POSTGRES_DB:-ticketing}?currentSchema=match_service"
+      DB_USERNAME: ${DB_USERNAME:-ticketing}
+      DB_PASSWORD: ${DB_PASSWORD:?DB_PASSWORD is required}
       REDIS_HOST: redis
       REDIS_PORT: 6379
       SPRING_DATA_REDIS_HOST: redis
@@ -210,13 +208,12 @@ services:
       SERVER_PORT: 20003
       CLUB_PORT: 20003
       CLUB_SERVICE_PORT: 20003
-      DB_HOST: postgres
-      DB_PORT: 5432
-      DB_NAME: ${POSTGRES_DB:-ticketing}
+      DB_HOST: ${DB_HOST:-postgres}
+      DB_PORT: ${DB_PORT:-5432}
+      DB_NAME: ${DB_NAME:-ticketing}
       DB_SCHEMA: club_service
-      DB_USERNAME: ${POSTGRES_USER:-ticketing}
-      DB_PASSWORD: ${POSTGRES_PASSWORD:-ticketing1234}
-      SPRING_DATASOURCE_URL: "jdbc:postgresql://postgres:5432/${POSTGRES_DB:-ticketing}?currentSchema=club_service"
+      DB_USERNAME: ${DB_USERNAME:-ticketing}
+      DB_PASSWORD: ${DB_PASSWORD:?DB_PASSWORD is required}
     depends_on:
       config-server:
         condition: service_started
@@ -247,13 +244,12 @@ services:
       SERVER_PORT: 20004
       SEAT_PORT: 20004
       SEAT_SERVICE_PORT: 20004
-      DB_HOST: postgres
-      DB_PORT: 5432
-      DB_NAME: ${POSTGRES_DB:-ticketing}
+      DB_HOST: ${DB_HOST:-postgres}
+      DB_PORT: ${DB_PORT:-5432}
+      DB_NAME: ${DB_NAME:-ticketing}
       DB_SCHEMA: seat_service
-      DB_USERNAME: ${POSTGRES_USER:-ticketing}
-      DB_PASSWORD: ${POSTGRES_PASSWORD:-ticketing1234}
-      SPRING_DATASOURCE_URL: "jdbc:postgresql://postgres:5432/${POSTGRES_DB:-ticketing}?currentSchema=seat_service"
+      DB_USERNAME: ${DB_USERNAME:-ticketing}
+      DB_PASSWORD: ${DB_PASSWORD:?DB_PASSWORD is required}
     depends_on:
       config-server:
         condition: service_started
@@ -284,13 +280,12 @@ services:
       SERVER_PORT: 20005
       RESERVATION_PORT: 20005
       RESERVATION_SERVICE_PORT: 20005
-      DB_HOST: postgres
-      DB_PORT: 5432
-      DB_NAME: ${POSTGRES_DB:-ticketing}
+      DB_HOST: ${DB_HOST:-postgres}
+      DB_PORT: ${DB_PORT:-5432}
+      DB_NAME: ${DB_NAME:-ticketing}
       DB_SCHEMA: reservation_service
-      DB_USERNAME: ${POSTGRES_USER:-ticketing}
-      DB_PASSWORD: ${POSTGRES_PASSWORD:-ticketing1234}
-      SPRING_DATASOURCE_URL: "jdbc:postgresql://postgres:5432/${POSTGRES_DB:-ticketing}?currentSchema=reservation_service"
+      DB_USERNAME: ${DB_USERNAME:-ticketing}
+      DB_PASSWORD: ${DB_PASSWORD:?DB_PASSWORD is required}
       REDIS_HOST: redis
       REDIS_PORT: 6379
       SPRING_DATA_REDIS_HOST: redis
@@ -328,13 +323,12 @@ services:
       PAYMENT_PORT: 20006
       PAYMENT_SERVICE_PORT: 20006
       SPRING_PROFILES_ACTIVE: loadtest
-      DB_HOST: postgres
-      DB_PORT: 5432
-      DB_NAME: ${POSTGRES_DB:-ticketing}
+      DB_HOST: ${DB_HOST:-postgres}
+      DB_PORT: ${DB_PORT:-5432}
+      DB_NAME: ${DB_NAME:-ticketing}
       DB_SCHEMA: payment_service
-      DB_USERNAME: ${POSTGRES_USER:-ticketing}
-      DB_PASSWORD: ${POSTGRES_PASSWORD:-ticketing1234}
-      SPRING_DATASOURCE_URL: "jdbc:postgresql://postgres:5432/${POSTGRES_DB:-ticketing}?currentSchema=payment_service"
+      DB_USERNAME: ${DB_USERNAME:-ticketing}
+      DB_PASSWORD: ${DB_PASSWORD:?DB_PASSWORD is required}
       KAFKA_BOOTSTRAP_SERVERS: kafka:9092
       SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka:9092
     depends_on:
@@ -368,13 +362,12 @@ services:
       SERVER_PORT: 20007
       QUEUE_PORT: 20007
       QUEUE_SERVICE_PORT: 20007
-      DB_HOST: postgres
-      DB_PORT: 5432
-      DB_NAME: ${POSTGRES_DB:-ticketing}
+      DB_HOST: ${DB_HOST:-postgres}
+      DB_PORT: ${DB_PORT:-5432}
+      DB_NAME: ${DB_NAME:-ticketing}
       DB_SCHEMA: queue_service
-      DB_USERNAME: ${POSTGRES_USER:-ticketing}
-      DB_PASSWORD: ${POSTGRES_PASSWORD:-ticketing1234}
-      SPRING_DATASOURCE_URL: "jdbc:postgresql://postgres:5432/${POSTGRES_DB:-ticketing}?currentSchema=queue_service"
+      DB_USERNAME: ${DB_USERNAME:-ticketing}
+      DB_PASSWORD: ${DB_PASSWORD:?DB_PASSWORD is required}
       REDIS_HOST: redis
       REDIS_PORT: 6379
       SPRING_DATA_REDIS_HOST: redis
