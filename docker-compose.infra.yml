@@ -1,25 +1,177 @@
 services:
-  redis:
-    image: redis:7-alpine
-    container_name: ticketing-redis
-    restart: unless-stopped
-    ports:
-      - "${REDIS_HOST_PORT:-16379}:6379"
-    command: redis-server --appendonly yes
+  # ==========================================
+  #  Redis Master  (고정 IP: 172.28.0.10)
+  # ==========================================
+  redis-master:
+    image: redis:7.2
+    container_name: redis-master
+    hostname: redis-master
+    restart: always
+    command: redis-server /usr/local/etc/redis/redis.conf
     volumes:
-      - redis-data:/data
+      - ./redis/master/redis.conf:/usr/local/etc/redis/redis.conf
+      - redis-master-data:/data
+    ports:
+      - "6379:6379"
     networks:
-      - ticketing-network
+      redis-net:
+        ipv4_address: 172.28.0.10
+      ticketing-network:
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
       interval: 10s
       timeout: 5s
       retries: 5
-    logging:
-      driver: "json-file"
-      options:
-        max-size: "10m"
-        max-file: "3"
+
+  # ==========================================
+  #  Redis Replica 1 (고정 IP: 172.28.0.11)
+  #  Redis Replica 2 (고정 IP: 172.28.0.12)
+  # ==========================================
+  redis-replica-1:
+    image: redis:7.2
+    container_name: redis-replica-1
+    hostname: redis-replica-1
+    restart: always
+    depends_on:
+      redis-master:
+        condition: service_healthy
+    command: redis-server /usr/local/etc/redis/redis1.conf
+    volumes:
+      - ./redis/replica/redis1.conf:/usr/local/etc/redis/redis1.conf
+      - redis-replica-1-data:/data
+    ports:
+      - "6380:6380"
+    networks:
+      redis-net:
+        ipv4_address: 172.28.0.11
+    healthcheck:
+      test: [ "CMD", "redis-cli", "-p", "6380", "ping" ]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+      start_period: 10s
+
+  redis-replica-2:
+    image: redis:7.2
+    container_name: redis-replica-2
+    hostname: redis-replica-2
+    restart: always
+    depends_on:
+      redis-master:
+        condition: service_healthy
+    command: redis-server /usr/local/etc/redis/redis2.conf
+    volumes:
+      - ./redis/replica/redis2.conf:/usr/local/etc/redis/redis2.conf
+      - redis-replica-2-data:/data
+    ports:
+      - "6381:6381"
+    networks:
+      redis-net:
+        ipv4_address: 172.28.0.12
+    healthcheck:
+      test: [ "CMD", "redis-cli", "-p", "6381", "ping" ]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+      start_period: 10s
+
+  # ==========================================
+  #  Redis Sentinel 1 (고정 IP: 172.28.0.21)
+  #  Redis Sentinel 2 (고정 IP: 172.28.0.22)
+  #  Redis Sentinel 3 (고정 IP: 172.28.0.23)
+  # ==========================================
+  redis-sentinel-1:
+    image: redis:7.2
+    container_name: redis-sentinel-1
+    hostname: redis-sentinel-1
+    restart: always
+    depends_on:
+      redis-master:
+        condition: service_healthy
+      redis-replica-1:
+        condition: service_healthy
+      redis-replica-2:
+        condition: service_healthy
+    command: >
+      sh -c "cp /tmp/sentinel1.conf /data/sentinel1.conf &&
+             redis-sentinel /data/sentinel1.conf"
+    volumes:
+      - ./redis/sentinel/sentinel1.conf:/tmp/sentinel1.conf:ro
+      - sentinel1-data:/data
+    ports:
+      - "26379:26379"
+    networks:
+      redis-net:
+        ipv4_address: 172.28.0.21
+      ticketing-network:
+    healthcheck:
+      test: [ "CMD", "redis-cli", "-p", "26379", "ping" ]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+      start_period: 15s
+
+  redis-sentinel-2:
+    image: redis:7.2
+    container_name: redis-sentinel-2
+    hostname: redis-sentinel-2
+    restart: always
+    depends_on:
+      redis-master:
+        condition: service_healthy
+      redis-replica-1:
+        condition: service_healthy
+      redis-replica-2:
+        condition: service_healthy
+    command: >
+      sh -c "cp /tmp/sentinel2.conf /data/sentinel2.conf &&
+             redis-sentinel /data/sentinel2.conf"
+    volumes:
+      - ./redis/sentinel/sentinel2.conf:/tmp/sentinel2.conf:ro
+      - sentinel2-data:/data
+    ports:
+      - "26380:26379"
+    networks:
+      redis-net:
+        ipv4_address: 172.28.0.22
+      ticketing-network:
+    healthcheck:
+      test: [ "CMD", "redis-cli", "-p", "26379", "ping" ]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+      start_period: 15s
+
+  redis-sentinel-3:
+    image: redis:7.2
+    container_name: redis-sentinel-3
+    hostname: redis-sentinel-3
+    restart: always
+    depends_on:
+      redis-master:
+        condition: service_healthy
+      redis-replica-1:
+        condition: service_healthy
+      redis-replica-2:
+        condition: service_healthy
+    command: >
+      sh -c "cp /tmp/sentinel3.conf /data/sentinel3.conf &&
+             redis-sentinel /data/sentinel3.conf"
+    volumes:
+      - ./redis/sentinel/sentinel3.conf:/tmp/sentinel3.conf:ro
+      - sentinel3-data:/data
+    ports:
+      - "26381:26379"
+    networks:
+      redis-net:
+        ipv4_address: 172.28.0.23
+      ticketing-network:
+    healthcheck:
+      test: [ "CMD", "redis-cli", "-p", "26379", "ping" ]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+      start_period: 15s
 
   kafka:
     image: apache/kafka:3.7.2
@@ -232,6 +384,13 @@ networks:
   ticketing-network:
     name: ticketing-network
     driver: bridge
+  redis-net:
+    driver: bridge
+    attachable: true
+    name: redis-net
+    ipam:
+      config:
+        - subnet: 172.28.0.0/24
 
 volumes:
   redis-data:
@@ -239,3 +398,9 @@ volumes:
   prometheus-data:
   loki-data:
   grafana-data:
+  redis-master-data:
+  redis-replica-1-data:
+  redis-replica-2-data:
+  sentinel1-data:
+  sentinel2-data:
+  sentinel3-data:
