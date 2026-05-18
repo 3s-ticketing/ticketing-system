@@ -142,11 +142,7 @@ services:
     logging: *app-logging
 
   match-service:
-    build:
-      context: ../match-service
-      dockerfile: Dockerfile
-      args:
-        <<: *build-args
+    image: ghcr.io/3s-ticketing/match-service:main-latest
     container_name: ticketing-match-service
     restart: unless-stopped
     ports:
@@ -184,11 +180,7 @@ services:
     logging: *app-logging
 
   club-service:
-    build:
-      context: ../club-service
-      dockerfile: Dockerfile
-      args:
-        <<: *build-args
+    image: ghcr.io/3s-ticketing/club-service:main-latest
     container_name: ticketing-club-service
     restart: unless-stopped
     ports:
@@ -220,11 +212,7 @@ services:
     logging: *app-logging
 
   seat-service:
-    build:
-      context: ../seat-service
-      dockerfile: Dockerfile
-      args:
-        <<: *build-args
+    image: ghcr.io/3s-ticketing/seat-service:main-latest
     container_name: ticketing-seat-service
     restart: unless-stopped
     ports:
@@ -256,11 +244,7 @@ services:
     logging: *app-logging
 
   reservation-service:
-    build:
-      context: ../reservation-service
-      dockerfile: Dockerfile
-      args:
-        <<: *build-args
+    image: ghcr.io/3s-ticketing/reservation-service:main-latest
     container_name: ticketing-reservation-service
     restart: unless-stopped
     ports:
@@ -298,11 +282,7 @@ services:
     logging: *app-logging
 
   payment-service:
-    build:
-      context: ../payment-service
-      dockerfile: Dockerfile
-      args:
-        <<: *build-args
+    image: ghcr.io/3s-ticketing/payment-service:main-latest
     container_name: ticketing-payment-service
     restart: unless-stopped
     ports:
@@ -337,11 +317,7 @@ services:
     logging: *app-logging
 
   queue-service:
-    build:
-      context: ../queue-service
-      dockerfile: Dockerfile
-      args:
-        <<: *build-args
+    image: ghcr.io/3s-ticketing/queue-service:main-latest
     container_name: ticketing-queue-service
     restart: unless-stopped
     ports:
