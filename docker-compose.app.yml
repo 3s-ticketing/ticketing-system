@@ -109,11 +109,7 @@ services:
     logging: *app-logging
 
   user-service:
-    build:
-      context: ../user-service
-      dockerfile: Dockerfile
-      args:
-        <<: *build-args
+    image: ghcr.io/3s-ticketing/user-service:main-latest
     container_name: ticketing-user-service
     restart: unless-stopped
     ports:

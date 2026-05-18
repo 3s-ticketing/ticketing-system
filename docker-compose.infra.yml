@@ -232,10 +232,10 @@ services:
       KC_HEALTH_ENABLED: "true"
       KC_METRICS_ENABLED: "true"
       JAVA_OPTS_APPEND: "${KEYCLOAK_JAVA_OPTS_APPEND:--Xms256m -Xmx512m}"
-    entrypoint: ["/bin/sh", "-c"]
-    command: >
-      /opt/keycloak/bin/kc.sh build --db=postgres --health-enabled=true --metrics-enabled=true &&
-      exec /opt/keycloak/bin/kc.sh start-dev --import-realm
+      KC_DB_POOL_INITIAL_SIZE: "1"
+      KC_DB_POOL_MIN_SIZE: "1"
+      KC_DB_POOL_MAX_SIZE: "5"
+    command: start-dev --import-realm
     volumes:
       - ./docker/keycloak/import:/opt/keycloak/data/import:ro
     networks:
@@ -384,6 +384,7 @@ networks:
   ticketing-network:
     name: ticketing-network
     driver: bridge
+
   redis-net:
     driver: bridge
     attachable: true
