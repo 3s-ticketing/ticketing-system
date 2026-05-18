@@ -168,9 +168,9 @@ services:
       DB_SCHEMA: match_service
       DB_USERNAME: ${DB_USERNAME:-ticketing}
       DB_PASSWORD: ${DB_PASSWORD:?DB_PASSWORD is required}
-      REDIS_HOST: redis-master
       REDIS_PORT: 6379
-      SPRING_DATA_REDIS_HOST: redis-master
+      SPRING_DATA_REDIS_SENTINEL_MASTER: mymaster
+      SPRING_DATA_REDIS_SENTINEL_NODES: redis-sentinel-1:26379,redis-sentinel-2:26379,redis-sentinel-3:26379
       SPRING_DATA_REDIS_PORT: 6379
       KAFKA_BOOTSTRAP_SERVERS: kafka:9092
       SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka:9092
@@ -282,9 +282,9 @@ services:
       DB_SCHEMA: reservation_service
       DB_USERNAME: ${DB_USERNAME:-ticketing}
       DB_PASSWORD: ${DB_PASSWORD:?DB_PASSWORD is required}
-      REDIS_HOST: redis-master
       REDIS_PORT: 6379
-      SPRING_DATA_REDIS_HOST: redis-master
+      SPRING_DATA_REDIS_SENTINEL_MASTER: mymaster
+      SPRING_DATA_REDIS_SENTINEL_NODES: redis-sentinel-1:26379,redis-sentinel-2:26379,redis-sentinel-3:26379
       SPRING_DATA_REDIS_PORT: 6379
       KAFKA_BOOTSTRAP_SERVERS: kafka:9092
       SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka:9092
@@ -364,9 +364,9 @@ services:
       DB_SCHEMA: queue_service
       DB_USERNAME: ${DB_USERNAME:-ticketing}
       DB_PASSWORD: ${DB_PASSWORD:?DB_PASSWORD is required}
-      REDIS_HOST: redis-master
       REDIS_PORT: 6379
-      SPRING_DATA_REDIS_HOST: redis-master
+      SPRING_DATA_REDIS_SENTINEL_MASTER: mymaster
+      SPRING_DATA_REDIS_SENTINEL_NODES: redis-sentinel-1:26379,redis-sentinel-2:26379,redis-sentinel-3:26379
       SPRING_DATA_REDIS_PORT: 6379
       KAFKA_BOOTSTRAP_SERVERS: kafka:9092
       SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka:9092
