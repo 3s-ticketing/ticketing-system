@@ -1,0 +1,112 @@
+# EC2/RDS deployment override
+# - Use this together with docker-compose.infra.yml and docker-compose.app.yml.
+# - PostgreSQL container is not started in prod; DB_HOST must point to RDS.
+# - Do not commit real .env values.
+
+services:
+  keycloak:
+    entrypoint:
+      - /bin/sh
+      - -c
+      - |
+        /opt/keycloak/bin/kc.sh build --db=postgres --health-enabled=true --metrics-enabled=true &&
+        exec /opt/keycloak/bin/kc.sh start-dev --import-realm
+    command: []
+    environment:
+      KC_DB_URL: jdbc:postgresql://${DB_HOST:?DB_HOST is required}:${DB_PORT:-5432}/${KEYCLOAK_DB:-keycloak}
+      KC_DB_USERNAME: ${DB_USERNAME:?DB_USERNAME is required}
+      KC_DB_PASSWORD: ${DB_PASSWORD:?DB_PASSWORD is required}
+      KEYCLOAK_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD:?KEYCLOAK_ADMIN_PASSWORD is required}
+      KC_HTTP_ENABLED: "true"
+      KC_HOSTNAME_STRICT: "false"
+
+  gateway-service:
+    environment:
+      JWT_ISSUER_URI: ${JWT_ISSUER_URI:?JWT_ISSUER_URI is required}
+      JWT_JWK_SET_URI: ${JWT_JWK_SET_URI:-http://keycloak:8080/realms/ticketing/protocol/openid-connect/certs}
+      EUREKA_DEFAULT_ZONE: http://eureka-server:10001/eureka/
+
+  user-service:
+    environment:
+      DB_HOST: ${DB_HOST:?DB_HOST is required}
+      DB_PORT: ${DB_PORT:-5432}
+      DB_NAME: ${DB_NAME:-ticketing}
+      DB_USERNAME: ${DB_USERNAME:?DB_USERNAME is required}
+      DB_PASSWORD: ${DB_PASSWORD:?DB_PASSWORD is required}
+      JPA_SHOW_SQL: "false"
+      EUREKA_DEFAULT_ZONE: http://eureka-server:10001/eureka/
+
+  club-service:
+    environment:
+      DB_HOST: ${DB_HOST:?DB_HOST is required}
+      DB_PORT: ${DB_PORT:-5432}
+      DB_NAME: ${DB_NAME:-ticketing}
+      DB_USERNAME: ${DB_USERNAME:?DB_USERNAME is required}
+      DB_PASSWORD: ${DB_PASSWORD:?DB_PASSWORD is required}
+      JPA_SHOW_SQL: "false"
+      EUREKA_DEFAULT_ZONE: http://eureka-server:10001/eureka/
+
+  match-service:
+    environment:
+      DB_HOST: ${DB_HOST:?DB_HOST is required}
+      DB_PORT: ${DB_PORT:-5432}
+      DB_NAME: ${DB_NAME:-ticketing}
+      DB_USERNAME: ${DB_USERNAME:?DB_USERNAME is required}
+      DB_PASSWORD: ${DB_PASSWORD:?DB_PASSWORD is required}
+      JPA_SHOW_SQL: "false"
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      KAFKA_BOOTSTRAP_SERVERS: kafka:9092
+      EUREKA_DEFAULT_ZONE: http://eureka-server:10001/eureka/
+
+  seat-service:
+    environment:
+      DB_HOST: ${DB_HOST:?DB_HOST is required}
+      DB_PORT: ${DB_PORT:-5432}
+      DB_NAME: ${DB_NAME:-ticketing}
+      DB_USERNAME: ${DB_USERNAME:?DB_USERNAME is required}
+      DB_PASSWORD: ${DB_PASSWORD:?DB_PASSWORD is required}
+      JPA_SHOW_SQL: "false"
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      KAFKA_BOOTSTRAP_SERVERS: kafka:9092
+      EUREKA_DEFAULT_ZONE: http://eureka-server:10001/eureka/
+
+  reservation-service:
+    environment:
+      DB_HOST: ${DB_HOST:?DB_HOST is required}
+      DB_PORT: ${DB_PORT:-5432}
+      DB_NAME: ${DB_NAME:-ticketing}
+      DB_USERNAME: ${DB_USERNAME:?DB_USERNAME is required}
+      DB_PASSWORD: ${DB_PASSWORD:?DB_PASSWORD is required}
+      JPA_SHOW_SQL: "false"
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      KAFKA_BOOTSTRAP_SERVERS: kafka:9092
+      EUREKA_DEFAULT_ZONE: http://eureka-server:10001/eureka/
+
+  payment-service:
+    environment:
+      DB_HOST: ${DB_HOST:?DB_HOST is required}
+      DB_PORT: ${DB_PORT:-5432}
+      DB_NAME: ${DB_NAME:-ticketing}
+      DB_USERNAME: ${DB_USERNAME:?DB_USERNAME is required}
+      DB_PASSWORD: ${DB_PASSWORD:?DB_PASSWORD is required}
+      JPA_SHOW_SQL: "false"
+      KAFKA_BOOTSTRAP_SERVERS: kafka:9092
+      EUREKA_DEFAULT_ZONE: http://eureka-server:10001/eureka/
+      TOSS_SECRET_KEY: ${TOSS_SECRET_KEY:?TOSS_SECRET_KEY is required}
+
+  queue-service:
+    environment:
+      DB_HOST: ${DB_HOST:?DB_HOST is required}
+      DB_PORT: ${DB_PORT:-5432}
+      DB_NAME: ${DB_NAME:-ticketing}
+      DB_USERNAME: ${DB_USERNAME:?DB_USERNAME is required}
+      DB_PASSWORD: ${DB_PASSWORD:?DB_PASSWORD is required}
+      JPA_SHOW_SQL: "false"
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      KAFKA_BOOTSTRAP_SERVERS: kafka:9092
+      EUREKA_DEFAULT_ZONE: http://eureka-server:10001/eureka/
+      QUEUE_TOKEN_SECRET: ${QUEUE_TOKEN_SECRET:?QUEUE_TOKEN_SECRET is required}
