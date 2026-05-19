@@ -9,26 +9,26 @@ x-build-args: &build-args
   GPR_TOKEN: ${GPR_TOKEN}
 
 x-config-env: &config-env
-  SPRING_CONFIG_IMPORT: optional:configserver:http://config-server:10002
-  SPRING_CLOUD_CONFIG_URI: http://config-server:10002
+  SPRING_CONFIG_IMPORT: ${SPRING_CONFIG_IMPORT:-optional:configserver:http://config-server:10002}
+  SPRING_CLOUD_CONFIG_URI: ${SPRING_CLOUD_CONFIG_URI:-http://config-server:10002}
 
 x-eureka-env: &eureka-env
-  EUREKA_DEFAULT_ZONE: http://eureka-server:10001/eureka/
-  EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://eureka-server:10001/eureka/
-  EUREKA_CLIENT_SERVICE_URL_DEFAULTZONE: http://eureka-server:10001/eureka/
-  EUREKA_CLIENT_SERVICE_URL_DEFAULT_ZONE: http://eureka-server:10001/eureka/
+  EUREKA_DEFAULT_ZONE: ${EUREKA_DEFAULT_ZONE:-http://eureka-server:10001/eureka/}
+  EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: ${EUREKA_DEFAULT_ZONE:-http://eureka-server:10001/eureka/}
+  EUREKA_CLIENT_SERVICE_URL_DEFAULTZONE: ${EUREKA_DEFAULT_ZONE:-http://eureka-server:10001/eureka/}
+  EUREKA_CLIENT_SERVICE_URL_DEFAULT_ZONE: ${EUREKA_DEFAULT_ZONE:-http://eureka-server:10001/eureka/}
   JAVA_TOOL_OPTIONS: >-
-    -Deureka.client.serviceUrl.defaultZone=http://eureka-server:10001/eureka/
-    -Deureka.client.service-url.defaultZone=http://eureka-server:10001/eureka/
+    -Deureka.client.serviceUrl.defaultZone=${EUREKA_DEFAULT_ZONE:-http://eureka-server:10001/eureka/}
+    -Deureka.client.service-url.defaultZone=${EUREKA_DEFAULT_ZONE:-http://eureka-server:10001/eureka/}
   SPRING_APPLICATION_JSON: >
     {
       "eureka": {
         "client": {
           "serviceUrl": {
-            "defaultZone": "http://eureka-server:10001/eureka/"
+            "defaultZone": "${EUREKA_DEFAULT_ZONE:-http://eureka-server:10001/eureka/}"
           },
           "service-url": {
-            "defaultZone": "http://eureka-server:10001/eureka/"
+            "defaultZone": "${EUREKA_DEFAULT_ZONE:-http://eureka-server:10001/eureka/}"
           }
         }
       }
@@ -131,7 +131,7 @@ services:
       DB_SCHEMA: user_service
       DB_USERNAME: ${DB_USERNAME:-ticketing}
       DB_PASSWORD: ${DB_PASSWORD:?DB_PASSWORD is required}
-      KEYCLOAK_SERVER_URL: http://keycloak:8080
+      KEYCLOAK_SERVER_URL: ${KEYCLOAK_SERVER_URL:-http://keycloak:8080}
     depends_on:
       config-server:
         condition: service_started
@@ -164,12 +164,12 @@ services:
       DB_SCHEMA: match_service
       DB_USERNAME: ${DB_USERNAME:-ticketing}
       DB_PASSWORD: ${DB_PASSWORD:?DB_PASSWORD is required}
-      REDIS_HOST: redis
-      REDIS_PORT: 6379
-      SPRING_DATA_REDIS_HOST: redis
-      SPRING_DATA_REDIS_PORT: 6379
-      KAFKA_BOOTSTRAP_SERVERS: kafka:9092
-      SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka:9092
+      REDIS_HOST: ${REDIS_HOST:-redis}
+      REDIS_PORT: ${REDIS_PORT:-6379}
+      SPRING_DATA_REDIS_HOST: ${REDIS_HOST:-redis}
+      SPRING_DATA_REDIS_PORT: ${REDIS_PORT:-6379}
+      KAFKA_BOOTSTRAP_SERVERS: ${KAFKA_BOOTSTRAP_SERVERS:-kafka:9092}
+      SPRING_KAFKA_BOOTSTRAP_SERVERS: ${KAFKA_BOOTSTRAP_SERVERS:-kafka:9092}
     depends_on:
       config-server:
         condition: service_started
@@ -266,12 +266,12 @@ services:
       DB_SCHEMA: reservation_service
       DB_USERNAME: ${DB_USERNAME:-ticketing}
       DB_PASSWORD: ${DB_PASSWORD:?DB_PASSWORD is required}
-      REDIS_HOST: redis
-      REDIS_PORT: 6379
-      SPRING_DATA_REDIS_HOST: redis
-      SPRING_DATA_REDIS_PORT: 6379
-      KAFKA_BOOTSTRAP_SERVERS: kafka:9092
-      SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka:9092
+      REDIS_HOST: ${REDIS_HOST:-redis}
+      REDIS_PORT: ${REDIS_PORT:-6379}
+      SPRING_DATA_REDIS_HOST: ${REDIS_HOST:-redis}
+      SPRING_DATA_REDIS_PORT: ${REDIS_PORT:-6379}
+      KAFKA_BOOTSTRAP_SERVERS: ${KAFKA_BOOTSTRAP_SERVERS:-kafka:9092}
+      SPRING_KAFKA_BOOTSTRAP_SERVERS: ${KAFKA_BOOTSTRAP_SERVERS:-kafka:9092}
     depends_on:
       config-server:
         condition: service_started
@@ -305,8 +305,8 @@ services:
       DB_SCHEMA: payment_service
       DB_USERNAME: ${DB_USERNAME:-ticketing}
       DB_PASSWORD: ${DB_PASSWORD:?DB_PASSWORD is required}
-      KAFKA_BOOTSTRAP_SERVERS: kafka:9092
-      SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka:9092
+      KAFKA_BOOTSTRAP_SERVERS: ${KAFKA_BOOTSTRAP_SERVERS:-kafka:9092}
+      SPRING_KAFKA_BOOTSTRAP_SERVERS: ${KAFKA_BOOTSTRAP_SERVERS:-kafka:9092}
     depends_on:
       config-server:
         condition: service_started
@@ -340,12 +340,12 @@ services:
       DB_SCHEMA: queue_service
       DB_USERNAME: ${DB_USERNAME:-ticketing}
       DB_PASSWORD: ${DB_PASSWORD:?DB_PASSWORD is required}
-      REDIS_HOST: redis
-      REDIS_PORT: 6379
-      SPRING_DATA_REDIS_HOST: redis
-      SPRING_DATA_REDIS_PORT: 6379
-      KAFKA_BOOTSTRAP_SERVERS: kafka:9092
-      SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka:9092
+      REDIS_HOST: ${REDIS_HOST:-redis}
+      REDIS_PORT: ${REDIS_PORT:-6379}
+      SPRING_DATA_REDIS_HOST: ${REDIS_HOST:-redis}
+      SPRING_DATA_REDIS_PORT: ${REDIS_PORT:-6379}
+      KAFKA_BOOTSTRAP_SERVERS: ${KAFKA_BOOTSTRAP_SERVERS:-kafka:9092}
+      SPRING_KAFKA_BOOTSTRAP_SERVERS: ${KAFKA_BOOTSTRAP_SERVERS:-kafka:9092}
     depends_on:
       config-server:
         condition: service_started
